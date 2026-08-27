@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amigo Secreto · Sorteo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EAE0CA;
+    --paper-light: #FBF7EC;
+    --paper-deep: #DED0AE;
+    --ink: #2B2420;
+    --ink-soft: #6B6053;
+    --seal: #8B2635;
+    --seal-dark: #6B1D29;
+    --seal-tint: #f3dfe1;
+    --brass: #A67C3D;
+    --sage: #5B7553;
+    --sage-tint: #e4ead9;
+    --line: #C9B98F;
+    --radius: 6px;
+    --shadow: 0 1px 0 rgba(43,36,32,.05), 0 18px 30px -18px rgba(43,36,32,.35);
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Work Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(166,124,61,.08), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(139,38,53,.06), transparent 40%),
+      var(--paper);
+    background-attachment: fixed;
+    font-family: var(--font-body);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap{
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+  }
+
+  /* ---------- header ---------- */
+  .masthead{
+    text-align:center;
+    margin-bottom: 2.25rem;
+  }
+  .masthead .eyebrow{
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--brass);
+    display:block;
+    margin-bottom: .6rem;
+  }
+  .masthead h1{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 6vw, 3rem);
+    margin: 0 0 .5rem;
+    letter-spacing: -.01em;
+  }
+  .masthead p{
+    color: var(--ink-soft);
+    font-size: .98rem;
+    max-width: 44ch;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* ---------- steps nav ---------- */
+  .steps{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 0;
+    margin-bottom: 1.75rem;
+  }
+  .step-btn{
+    background:none;
+    border:none;
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    color: var(--ink-soft);
+    padding: .5rem .9rem;
+    cursor:pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s ease, border-color .15s ease;
+    white-space: nowrap;
+  }
+  .step-btn strong{ color: inherit; font-weight:700; }
+  .step-btn.active{
+    color: var(--seal);
+    border-bottom-color: var(--seal);
+  }
+  .step-divider{
+    width: 22px;
+    height: 1px;
+    background: repeating-linear-gradient(to right, var(--line) 0 4px, transparent 4px 8px);
+  }
+
+  /* ---------- ticket card ---------- */
+  .ticket{
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .ticket-stub{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: .85rem 1.5rem;
+    background: var(--paper-deep);
+    border-bottom: 1px dashed var(--brass);
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .ticket-stub .dot{
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background: var(--sage);
+    margin-right:.4em;
+  }
+  .ticket-body{ padding: 2rem 1.75rem 2.25rem; }
+
+  h2.section-title{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0 0 .35rem;
+  }
+  .section-sub{
+    color: var(--ink-soft);
+    font-size: .92rem;
+    margin: 0 0 1.5rem;
+    line-height:1.5;
+  }
+
+  /* ---------- form ---------- */
+  label{
+    display:block;
+    font-size: .78rem;
+    font-weight:600;
+    letter-spacing:.03em;
+    color: var(--ink);
+    margin-bottom: .35rem;
+  }
+  .field{ margin-bottom: 1.1rem; }
+  input[type="text"], input[type="date"], input[type="datetime-local"], input[type="password"], input[type="tel"], select{
+    width:100%;
+    font-family: var(--font-body);
+    font-size: .95rem;
+    padding: .65rem .75rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--ink);
+  }
+  input[type="tel"]{ font-family: var(--font-mono); letter-spacing:.3em; text-align:center; }
+  input:focus, select:focus, button:focus-visible{
+    outline: 2px solid var(--seal);
+    outline-offset: 1px;
+  }
+  .gift-row{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    margin-bottom:.55rem;
+  }
+  .gift-row span{
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    color: var(--brass);
+    width: 1.1rem;
+    flex-shrink:0;
+  }
+  .hint{ font-size: .8rem; color: var(--ink-soft); margin-top: .3rem; }
+
+  button.primary{
+    width:100%;
+    background: var(--seal);
+    color: #fbf7ec;
+    border: none;
+    border-radius: 4px;
+    padding: .85rem 1rem;
+    font-family: var(--font-body);
+    font-weight:600;
+    font-size: .95rem;
+    letter-spacing: .01em;
+    cursor:pointer;
+    transition: background .15s ease, transform .05s ease;
+    margin-top: .4rem;
+  }
+  button.primary:hover{ background: var(--seal-dark); }
+  button.primary:active{ transform: translateY(1px); }
+  button.primary:disabled{
+    background: #cbbfa8;
+    color: #fff;
+    cursor:not-allowed;
+  }
+  button.ghost{
+    background:none;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    border-radius: 4px;
+    padding: .6rem .9rem;
+    font-size: .82rem;
+    cursor:pointer;
+    font-family: var(--font-body);
+  }
+  button.ghost:hover{ border-color: var(--seal); color: var(--seal); }
+  button.link-danger{
+    background:none;
+    border:none;
+    color: var(--ink-soft);
+    font-size: .75rem;
+    text-decoration: underline;
+    cursor:pointer;
+    padding: 0;
+  }
+  button.link-danger:hover{ color: var(--seal); }
+
+  .msg{
+    font-size: .85rem;
+    padding: .6rem .8rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  .msg.error{ background: var(--seal-tint); color: var(--seal-dark); }
+  .msg.ok{ background: var(--sage-tint); color: #33502c; }
+
+  /* ---------- guest list ---------- */
+  .guest-list{ list-style:none; margin: 0 0 1.5rem; padding:0; }
+  .guest-list li{
+    display:flex;
+    align-items:center;
+    gap:.6rem;
+    padding: .5rem 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: .92rem;
+  }
+  .guest-list li:last-child{ border-bottom:none; }
+  .guest-list .num{
+    font-family: var(--font-mono);
+    font-size: .72rem;
+    color: var(--brass);
+    width: 1.6rem;
+  }
+  .empty{
+    text-align:center;
+    color: var(--ink-soft);
+    font-size: .9rem;
+    padding: 1.5rem 0;
+  }
+
+  .count-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:.4rem;
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    color: var(--ink-soft);
+    margin-bottom: 1.25rem;
+  }
+  .count-badge b{ color: var(--ink); font-size: .95rem; }
+
+  /* ---------- countdown ---------- */
+  .countdown{
+    display:flex;
+    gap: .6rem;
+    justify-content:center;
+    margin: 1.25rem 0 1.5rem;
+  }
+  .countdown .unit{
+    background: var(--paper-deep);
+    border-radius: 4px;
+    padding: .6rem .3rem;
+    width: 68px;
+    text-align:center;
+  }
+  .countdown .unit b{
+    display:block;
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    line-height:1;
+  }
+  .countdown .unit span{
+    font-size: .62rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color: var(--ink-soft);
+  }
+
+  hr.tear{
+    border: none;
+    border-top: 1px dashed var(--line);
+    margin: 1.75rem 0;
+  }
+
+  /* ---------- envelope ---------- */
+  .envelope-wrap{
+    display:flex;
+    justify-content:center;
+    margin: 1.25rem 0 1.75rem;
+    perspective: 800px;
+  }
+  .envelope{
+    width: 220px;
+    height: 148px;
+    position: relative;
+  }
+  .envelope .body{
+    position:absolute; inset:0;
+    background: var(--paper-deep);
+    border: 1px solid var(--brass);
+    border-radius: 3px;
+  }
+  .envelope .flap{
+    position:absolute;
+    top:0; left:0; right:0;
+    height: 74px;
+    background: var(--paper-deep);
+    border: 1px solid var(--brass);
+    border-bottom:none;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    transition: transform .7s cubic-bezier(.6,.05,.25,1);
+    z-index: 3;
+  }
+  .envelope.open .flap{ transform: rotateX(180deg); }
+  .seal{
+    position:absolute;
+    top: 46px; left: 50%;
+    width: 42px; height:42px;
+    margin-left: -21px;
+    background: var(--seal);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family: var(--font-display);
+    color: #f3dfe1;
+    font-size: .8rem;
+    font-weight:700;
+    box-shadow: 0 3px 6px rgba(0,0,0,.25);
+    transition: transform .5s ease .1s, opacity .5s ease .1s;
+    z-index: 4;
+  }
+  .envelope.open .seal{ transform: scale(0) rotate(35deg); opacity:0; }
+  .envelope .letter{
+    position:absolute;
+    left: 10px; right:10px; bottom: -6px;
+    top: 22px;
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    z-index: 2;
+    transform: translateY(0);
+    transition: transform .6s ease .15s;
+    padding: .8rem .7rem 0;
+    text-align:center;
+    overflow:hidden;
+  }
+  .envelope.open .letter{ transform: translateY(-58px); }
+  .letter .to{
+    font-family: var(--font-mono);
+    font-size: .62rem;
+    letter-spacing:.1em;
+    color: var(--ink-soft);
+    text-transform:uppercase;
+  }
+  .letter .name{
+    font-family: var(--font-display);
+    font-weight:600;
+    font-size: 1.05rem;
+    margin-top:.15rem;
+  }
+
+  .result-card{
+    background: var(--sage-tint);
+    border: 1px solid #b9caa9;
+    border-radius: 4px;
+    padding: 1.25rem 1.4rem;
+    margin-top: 1rem;
+  }
+  .result-card .who{
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #2f4a28;
+    margin: 0 0 .6rem;
+  }
+  .result-card ul{ margin: .3rem 0 0; padding-left: 1.1rem; }
+  .result-card li{ font-size: .92rem; margin-bottom:.25rem; }
+
+  .footer-note{
+    text-align:center;
+    font-size: .78rem;
+    color: var(--ink-soft);
+    margin-top: 2rem;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .envelope .flap, .envelope .seal, .envelope .letter{ transition: none; }
+  }
+
+  @media (max-width: 420px){
+    .steps{ flex-wrap: wrap; }
+    .ticket-body{ padding: 1.5rem 1.1rem 1.75rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="eyebrow">Sorteo privado · sin repetir nombre</span>
+    <h1>Amigo Secreto</h1>
+    <p>Escribe tu nombre y tres ideas de regalo. Cuando llegue la fecha del sorteo, cada quien abre su propio sobre para descubrir a quién le regala — sin que nadie más lo sepa.</p>
+  </div>
+
+  <nav class="steps" id="steps"></nav>
+
+  <div class="ticket">
+    <div class="ticket-stub" id="ticketStub"></div>
+    <div class="ticket-body" id="content"></div>
+  </div>
+
+  <p class="footer-note">Los datos de este sorteo se guardan de forma compartida para el grupo.<br>Cualquier persona con este enlace puede inscribirse y ver la lista de participantes; solo tu PIN abre tu propio sobre.</p>
+</div>
+
+<script>
+const SHARED = true;
+let state = { config: { drawDate: null, drawn: false }, participants: [], assignments: {} };
+let currentStep = 1;
+
+// ---------- storage helpers ----------
+async function getKey(key, fallback){
+  try{
+    const res = await window.storage.get(key, SHARED);
+    if(!res) return fallback;
+    return JSON.parse(res.value);
+  }catch(e){ return fallback; }
+}
+async function setKey(key, value){
+  try{
+    await window.storage.set(key, JSON.stringify(value), SHARED);
+    return true;
+  }catch(e){ console.error('storage error', e); return false; }
+}
+
+async function loadAll(){
+  state.config = await getKey('config', { drawDate: null, drawn: false });
+  state.participants = await getKey('participants', []);
+  state.assignments = await getKey('assignments', {});
+}
+
+// ---------- utils ----------
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function genId(){
+  return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+}
+function nameExists(name){
+  return state.participants.some(p => p.name.trim().toLowerCase() === name.trim().toLowerCase());
+}
+// Sattolo's algorithm: random single-cycle permutation -> guarantees no one is assigned to themselves
+function sattoloShuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * i);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- render: nav ----------
+function renderSteps(){
+  const labels = [
+    {n:1, label:'Inscripción'},
+    {n:2, label:'Estado del sorteo'},
+    {n:3, label:'Mi resultado'}
+  ];
+  const nav = document.getElementById('steps');
+  nav.innerHTML = labels.map((s,i) => `
+    ${i>0 ? '<div class="step-divider"></div>' : ''}
+    <button class="step-btn ${currentStep===s.n?'active':''}" data-step="${s.n}"><strong>${String(s.n).padStart(2,'0')}</strong> · ${s.label}</button>
+  `).join('');
+  nav.querySelectorAll('.step-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ currentStep = parseInt(btn.dataset.step); render(); });
+  });
+}
+
+function renderStub(){
+  const stub = document.getElementById('ticketStub');
+  const n = state.participants.length;
+  stub.innerHTML = `
+    <span><span class="dot" style="background:${state.config.drawn ? '#5B7553' : '#A67C3D'}"></span>${state.config.drawn ? 'Sorteo realizado' : 'Sorteo pendiente'}</span>
+    <span>N.º ${String(n).padStart(3,'0')} inscritos</span>
+  `;
+}
+
+// ---------- step 1: registro ----------
+function renderRegistro(msg){
+  const closed = state.config.drawn;
+  document.getElementById('content').innerHTML = `
+    <h2 class="section-title">Inscríbete</h2>
+    <p class="section-sub">Tu nombre, tres ideas de regalo (para quien te toque) y un PIN de 4 dígitos que solo tú conocerás — lo necesitarás para abrir tu sobre.</p>
+    ${msg ? `<div class="msg ${msg.type}">${esc(msg.text)}</div>` : ''}
+    ${closed ? `<div class="msg error">La inscripción está cerrada: el sorteo ya se realizó.</div>` : `
+    <form id="regForm">
+      <div class="field">
+        <label for="regName">Tu nombre</label>
+        <input type="text" id="regName" placeholder="Ej: María López" maxlength="60" required>
+      </div>
+      <div class="field">
+        <label>Tres ideas de regalo que te gustaría recibir</label>
+        <div class="gift-row"><span>1.</span><input type="text" id="gift1" placeholder="Ej: Taza de café" maxlength="80" required></div>
+        <div class="gift-row"><span>2.</span><input type="text" id="gift2" placeholder="Ej: Libro de misterio" maxlength="80" required></div>
+        <div class="gift-row"><span>3.</span><input type="text" id="gift3" placeholder="Ej: Medias divertidas" maxlength="80" required></div>
+      </div>
+      <div class="field">
+        <label for="regPin">Crea un PIN de 4 dígitos</label>
+        <input type="tel" id="regPin" inputmode="numeric" maxlength="4" placeholder="••••" required>
+        <div class="hint">Lo usarás en el paso 03 para ver, solo tú, a quién debes regalarle.</div>
+      </div>
+      <button type="submit" class="primary">Sellar mi sobre</button>
+    </form>
+    `}
+    <hr class="tear">
+    <div class="count-badge"><b>${state.participants.length}</b> persona${state.participants.length===1?'':'s'} inscrita${state.participants.length===1?'':'s'}</div>
+    ${renderGuestListHTML()}
+  `;
+  if(!closed){
+    document.getElementById('regForm').addEventListener('submit', onRegisterSubmit);
+  }
+}
+
+function renderGuestListHTML(){
+  if(state.participants.length === 0){
+    return `<p class="empty">Aún nadie se ha inscrito. Sé la primera persona.</p>`;
+  }
+  return `<ul class="guest-list">${state.participants.map((p,i)=>`<li><span class="num">${String(i+1).padStart(2,'0')}</span>${esc(p.name)}</li>`).join('')}</ul>`;
+}
+
+async function onRegisterSubmit(e){
+  e.preventDefault();
+  const name = document.getElementById('regName').value.trim();
+  const g1 = document.getElementById('gift1').value.trim();
+  const g2 = document.getElementById('gift2').value.trim();
+  const g3 = document.getElementById('gift3').value.trim();
+  const pin = document.getElementById('regPin').value.trim();
+
+  if(!name || !g1 || !g2 || !g3){
+    renderRegistro({type:'error', text:'Completa tu nombre y las tres ideas de regalo.'});
+    return;
+  }
+  if(!/^\d{4}$/.test(pin)){
+    renderRegistro({type:'error', text:'El PIN debe tener exactamente 4 números.'});
+    return;
+  }
+  await loadAll();
+  if(nameExists(name)){
+    renderRegistro({type:'error', text:'Ese nombre ya está inscrito. Prueba con tu nombre completo para diferenciarte.'});
+    return;
+  }
+  const participant = { id: genId(), name, gifts:[g1,g2,g3], pin };
+  state.participants.push(participant);
+  const ok = await setKey('participants', state.participants);
+  renderStub();
+  if(ok){
+    renderRegistro({type:'ok', text:`Listo, ${name}. Tu sobre quedó sellado. Avísale al grupo cuándo será el sorteo.`});
+  }else{
+    renderRegistro({type:'error', text:'No se pudo guardar tu inscripción. Intenta de nuevo.'});
+  }
+}
+
+// ---------- step 2: estado del sorteo ----------
+let countdownTimer = null;
+
+function renderEstado(msg){
+  clearInterval(countdownTimer);
+  const cfg = state.config;
+  const n = state.participants.length;
+  const canSetDate = !cfg.drawn;
+  const now = new Date();
+  const drawDate = cfg.drawDate ? new Date(cfg.drawDate) : null;
+  const dateReached = drawDate ? now >= drawDate : true;
+  const enoughPeople = n >= 3;
+
+  document.getElementById('content').innerHTML = `
+    <h2 class="section-title">Estado del sorteo</h2>
+    <p class="section-sub">Se necesitan al menos 3 personas inscritas. El sorteo mezcla todos los nombres y asigna a cada quien a otra persona al azar — nunca a sí misma.</p>
+    ${msg ? `<div class="msg ${msg.type}">${esc(msg.text)}</div>` : ''}
+    <div class="count-badge"><b>${n}</b> persona${n===1?'':'s'} inscrita${n===1?'':'s'} ${enoughPeople ? '' : '· faltan al menos 3'}</div>
+
+    ${cfg.drawn ? `
+      <div class="msg ok">El sorteo ya se realizó el ${cfg.drawnAt ? new Date(cfg.drawnAt).toLocaleString('es') : ''}. Ve al paso 03 para ver tu resultado.</div>
+    ` : `
+      <div class="field">
+        <label for="drawDateInput">Fecha y hora del sorteo</label>
+        <input type="datetime-local" id="drawDateInput" ${canSetDate ? '' : 'disabled'} value="${cfg.drawDate ? toLocalInputValue(cfg.drawDate) : ''}">
+        <div class="hint">A partir de esta fecha, cualquier participante puede activar el sorteo desde aquí.</div>
+      </div>
+      <button class="ghost" id="saveDateBtn" type="button">Guardar fecha</button>
+
+      ${drawDate ? renderCountdownHTML(drawDate) : ''}
+
+      <button class="primary" id="drawBtn" type="button" ${(!enoughPeople || !dateReached) ? 'disabled' : ''} style="margin-top:1.25rem;">
+        ${!enoughPeople ? 'Faltan participantes' : (!dateReached ? 'Aún no llega la fecha' : 'Realizar el sorteo ahora')}
+      </button>
+    `}
+
+    <hr class="tear">
+    ${renderGuestListHTML()}
+    <button class="link-danger" id="resetBtn" type="button" style="margin-top:1.25rem;">Reiniciar sorteo (borra todo)</button>
+  `;
+
+  if(!cfg.drawn){
+    document.getElementById('saveDateBtn').addEventListener('click', onSaveDate);
+    document.getElementById('drawBtn').addEventListener('click', onRealizarSorteo);
+    if(drawDate) startCountdown(drawDate);
+  }
+  document.getElementById('resetBtn').addEventListener('click', onReset);
+}
+
+function toLocalInputValue(iso){
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function renderCountdownHTML(drawDate){
+  return `<div class="countdown" id="countdown">
+    <div class="unit"><b id="cdD">--</b><span>días</span></div>
+    <div class="unit"><b id="cdH">--</b><span>hrs</span></div>
+    <div class="unit"><b id="cdM">--</b><span>min</span></div>
+    <div class="unit"><b id="cdS">--</b><span>seg</span></div>
+  </div>`;
+}
+
+function startCountdown(drawDate){
+  function tick(){
+    const diff = drawDate - new Date();
+    if(diff <= 0){
+      clearInterval(countdownTimer);
+      const btn = document.getElementById('drawBtn');
+      if(btn){ btn.disabled = false; btn.textContent = 'Realizar el sorteo ahora'; }
+      ['cdD','cdH','cdM','cdS'].forEach(id=>{ const el = document.getElementById(id); if(el) el.textContent = '00'; });
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    const set = (id,v)=>{ const el = document.getElementById(id); if(el) el.textContent = String(v).padStart(2,'0'); };
+    set('cdD',d); set('cdH',h); set('cdM',m); set('cdS',s);
+  }
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+async function onSaveDate(){
+  const val = document.getElementById('drawDateInput').value;
+  if(!val){ renderEstado({type:'error', text:'Elige una fecha y hora.'}); return; }
+  await loadAll();
+  state.config.drawDate = new Date(val).toISOString();
+  const ok = await setKey('config', state.config);
+  renderStub();
+  renderEstado(ok ? {type:'ok', text:'Fecha del sorteo guardada.'} : {type:'error', text:'No se pudo guardar la fecha.'});
+}
+
+async function onRealizarSorteo(){
+  await loadAll();
+  if(state.config.drawn){ renderEstado({type:'ok', text:'El sorteo ya se había realizado.'}); return; }
+  if(state.participants.length < 3){ renderEstado({type:'error', text:'Se necesitan al menos 3 personas inscritas.'}); return; }
+  if(state.config.drawDate && new Date() < new Date(state.config.drawDate)){
+    renderEstado({type:'error', text:'Todavía no llega la fecha del sorteo.'});
+    return;
+  }
+  const shuffled = sattoloShuffle(state.participants);
+  const assignments = {};
+  state.participants.forEach((p, i) => { assignments[p.id] = shuffled[i].id; });
+
+  state.assignments = assignments;
+  state.config.drawn = true;
+  state.config.drawnAt = new Date().toISOString();
+
+  const ok1 = await setKey('assignments', state.assignments);
+  const ok2 = await setKey('config', state.config);
+  renderStub();
+  if(ok1 && ok2){
+    currentStep = 3;
+    renderSteps();
+    renderResultado({type:'ok', text:'¡Sorteo realizado! Cada quien puede ver su resultado abajo.'});
+  }else{
+    renderEstado({type:'error', text:'Hubo un problema al guardar el sorteo. Intenta de nuevo.'});
+  }
+}
+
+async function onReset(){
+  if(!confirm('Esto borra a todos los participantes y el sorteo. ¿Continuar?')) return;
+  state.participants = [];
+  state.assignments = {};
+  state.config = { drawDate: null, drawn: false };
+  await setKey('participants', []);
+  await setKey('assignments', {});
+  await setKey('config', state.config);
+  renderStub();
+  renderEstado({type:'ok', text:'Todo fue reiniciado. Pueden inscribirse de nuevo.'});
+}
+
+// ---------- step 3: resultado ----------
+function renderResultado(msg){
+  const cfg = state.config;
+  document.getElementById('content').innerHTML = `
+    <h2 class="section-title">Tu resultado</h2>
+    <p class="section-sub">Elige tu nombre e ingresa tu PIN. Solo tú verás a quién le toca regalarle.</p>
+    ${msg ? `<div class="msg ${msg.type}">${esc(msg.text)}</div>` : ''}
+    ${!cfg.drawn ? `<div class="msg error">El sorteo todavía no se ha realizado. Vuelve al paso 02 cuando llegue la fecha.</div>` : `
+      <div class="field">
+        <label for="whoSelect">Soy...</label>
+        <select id="whoSelect">
+          <option value="">Selecciona tu nombre</option>
+          ${state.participants.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label for="revealPin">Tu PIN</label>
+        <input type="tel" id="revealPin" inputmode="numeric" maxlength="4" placeholder="••••">
+      </div>
+      <button class="primary" id="revealBtn" type="button">Abrir mi sobre</button>
+      <div class="envelope-wrap"><div class="envelope" id="envelope">
+        <div class="flap"></div>
+        <div class="seal">AS</div>
+        <div class="body"></div>
+        <div class="letter"><div class="to">Para</div><div class="name" id="letterName">?</div></div>
+      </div></div>
+      <div id="resultBox"></div>
+    `}
+  `;
+  if(cfg.drawn){
+    document.getElementById('revealBtn').addEventListener('click', onReveal);
+  }
+}
+
+function onReveal(){
+  const whoId = document.getElementById('whoSelect').value;
+  const pin = document.getElementById('revealPin').value.trim();
+  const resultBox = document.getElementById('resultBox');
+  const envelope = document.getElementById('envelope');
+
+  if(!whoId){ resultBox.innerHTML = `<div class="msg error">Selecciona tu nombre.</div>`; return; }
+  const me = state.participants.find(p => p.id === whoId);
+  if(!me || me.pin !== pin){
+    resultBox.innerHTML = `<div class="msg error">PIN incorrecto para ese nombre.</div>`;
+    envelope.classList.remove('open');
+    return;
+  }
+  const targetId = state.assignments[whoId];
+  const target = state.participants.find(p => p.id === targetId);
+  if(!target){ resultBox.innerHTML = `<div class="msg error">No se encontró tu asignación. Contacta a quien organiza el sorteo.</div>`; return; }
+
+  document.getElementById('letterName').textContent = target.name;
+  envelope.classList.add('open');
+
+  resultBox.innerHTML = `
+    <div class="result-card">
+      <p class="who">Le regalas a: ${esc(target.name)}</p>
+      <div class="hint">Ideas de regalo que dejó:</div>
+      <ul>${target.gifts.map(g=>`<li>${esc(g)}</li>`).join('')}</ul>
+    </div>
+  `;
+}
+
+// ---------- master render ----------
+function render(){
+  renderSteps();
+  renderStub();
+  if(currentStep === 1) renderRegistro();
+  else if(currentStep === 2) renderEstado();
+  else renderResultado();
+}
+
+(async function init(){
+  document.getElementById('content').innerHTML = `<p class="empty">Cargando sorteo…</p>`;
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
