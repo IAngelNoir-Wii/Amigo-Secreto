@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --paper: #EAE0CA;
@@ -442,26 +444,54 @@
     <div class="ticket-stub" id="ticketStub"></div>
     <div class="ticket-body" id="content"></div>
   </div>
+  <div id="setupNotice"></div>
 
   <p class="footer-note">Los datos de este sorteo se guardan de forma compartida para el grupo.<br>Cualquier persona con este enlace puede inscribirse y ver la lista de participantes; solo tu PIN abre tu propio sobre.</p>
 </div>
 
 <script>
-const SHARED = true;
+// =====================================================================
+// CONFIGURACIÓN DE FIREBASE — reemplaza estos valores por los de tu
+// propio proyecto (gratis) en https://console.firebase.google.com
+//   1. Crea un proyecto → Compilación → Firestore Database → Crear.
+//   2. Configuración del proyecto (ícono de engranaje) → Tus apps → Web (</>).
+//   3. Copia el objeto "firebaseConfig" que te da y pégalo abajo.
+//   4. En Firestore → Reglas, pega las reglas que te di en el chat.
+// =====================================================================
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_PROYECTO.firebaseapp.com",
+  projectId: "TU_PROYECTO",
+  storageBucket: "TU_PROYECTO.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "TU_APP_ID"
+};
+const FIRESTORE_COLLECTION = "amigosecreto";
+// =====================================================================
+
 let state = { config: { drawDate: null, drawn: false }, participants: [], assignments: {} };
 let currentStep = 1;
+let db = null;
+const firebaseReady = firebaseConfig.apiKey !== "TU_API_KEY";
 
-// ---------- storage helpers ----------
+if(firebaseReady){
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+}
+
+// ---------- storage helpers (Firestore) ----------
 async function getKey(key, fallback){
+  if(!db) return fallback;
   try{
-    const res = await window.storage.get(key, SHARED);
-    if(!res) return fallback;
-    return JSON.parse(res.value);
-  }catch(e){ return fallback; }
+    const snap = await db.collection(FIRESTORE_COLLECTION).doc(key).get();
+    if(!snap.exists) return fallback;
+    return snap.data().value;
+  }catch(e){ console.error('storage error', e); return fallback; }
 }
 async function setKey(key, value){
+  if(!db) return false;
   try{
-    await window.storage.set(key, JSON.stringify(value), SHARED);
+    await db.collection(FIRESTORE_COLLECTION).doc(key).set({ value });
     return true;
   }catch(e){ console.error('storage error', e); return false; }
 }
@@ -801,6 +831,15 @@ function render(){
 }
 
 (async function init(){
+  if(!firebaseReady){
+    document.getElementById('content').innerHTML = `
+      <h2 class="section-title">Falta configurar Firebase</h2>
+      <p class="section-sub">Esta página necesita una base de datos gratuita para que todos los participantes compartan el mismo sorteo. Abre el archivo .html, busca el bloque "CONFIGURACIÓN DE FIREBASE" cerca del final y pega ahí los datos de tu proyecto de Firebase.</p>
+      <div class="msg error">firebaseConfig todavía tiene los valores de ejemplo ("TU_API_KEY").</div>
+    `;
+    document.getElementById('steps').innerHTML = '';
+    return;
+  }
   document.getElementById('content').innerHTML = `<p class="empty">Cargando sorteo…</p>`;
   await loadAll();
   render();
