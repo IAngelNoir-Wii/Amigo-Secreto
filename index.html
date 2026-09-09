@@ -304,7 +304,13 @@
     width: 100%;
     padding: 1.5rem 1.4rem;
     text-align:center;
+    animation: modalPop .35s cubic-bezier(.2,.9,.3,1.2);
   }
+  @keyframes modalPop{
+    from{ opacity:0; transform: scale(.92) translateY(6px); }
+    to{ opacity:1; transform: scale(1) translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce){ .modal-box{ animation: none; } }
   .modal-box .modal-title{
     font-family: var(--font-display);
     font-weight: 600;
@@ -329,9 +335,9 @@
 <div class="wrap">
 
   <div class="masthead">
-    <span class="eyebrow">Sorteo privado · registro centralizado</span>
+    <span class="eyebrow">Sorteo privado</span>
     <h1>Amigo Secreto</h1>
-    <p>Una persona anota a todo el grupo. Cada quien entra, elige su nombre, deja sus ideas de regalo y —cuando el sorteo esté hecho— ve ahí mismo a quién le regala.</p>
+    <p>¡Bienvenido al Amigo Secreto! Para participar, asegúrate de verificar tu nombre en la lista, guardar tus opciones de regalo y consultar la fecha del sorteo. (O a quien debes darle un obsequio)</p>
   </div>
 
   <nav class="steps" id="steps"></nav>
@@ -352,6 +358,18 @@
     <div class="modal-actions">
       <button class="ghost" id="confirmModalNo" type="button">No, cancelar</button>
       <button class="primary" id="confirmModalYes" type="button" style="margin-top:0;">Sí, soy yo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="resultModal">
+  <div class="modal-box">
+    <p class="modal-title">🎁 Le regalas a</p>
+    <p class="modal-title" id="resultModalName" style="color:var(--seal);">?</p>
+    <p class="modal-sub" style="margin-bottom:.5rem;">Ideas de regalo que dejó:</p>
+    <ul id="resultModalGifts" style="text-align:left; margin:0 0 1.25rem; padding-left:1.1rem; font-size:.9rem;"></ul>
+    <div class="modal-actions">
+      <button class="primary" id="resultModalClose" type="button" style="margin-top:0;">Cerrar</button>
     </div>
   </div>
 </div>
@@ -456,7 +474,7 @@ function downloadText(filename, text){
 // ---------- render: nav ----------
 function renderSteps(){
   const labels = [
-    {n:1, label:'Agregar'},
+    {n:1, label:'Lista de participantes'},
     {n:2, label:'Mi regalo y resultado'},
     {n:3, label:'Estado del sorteo'},
     {n:4, label:'Organizador'}
@@ -598,14 +616,7 @@ function loadMioArea(whoId){
   if(state.config.drawn){
     html += `
       <hr class="tear">
-      <button class="primary" id="revealBtn" type="button">Abrir mi sobre</button>
-      <div class="envelope-wrap"><div class="envelope" id="envelope">
-        <div class="flap"></div>
-        <div class="seal">AS</div>
-        <div class="body"></div>
-        <div class="letter"><div class="to">Para</div><div class="name" id="letterName">?</div></div>
-      </div></div>
-      <div id="resultBox"></div>
+      <button class="primary" id="revealBtn" type="button">🎁 Ver a quién le regalo</button>
     `;
   }else{
     html += `<p class="hint" style="margin-top:1rem;">Cuando se realice el sorteo, tu resultado aparecerá aquí mismo.</p>`;
@@ -636,25 +647,22 @@ async function onSaveGifts(whoId){
 }
 
 function onReveal(whoId){
-  const resultBox = document.getElementById('resultBox');
-  const envelope = document.getElementById('envelope');
   const targetId = state.assignments[whoId];
   const target = state.participants.find(p => p.id === targetId);
-  if(!target){ resultBox.innerHTML = `<div class="msg error">No se encontró tu asignación. Contacta a quien organiza el sorteo.</div>`; return; }
-
-  document.getElementById('letterName').textContent = target.name;
-  envelope.classList.add('open');
+  if(!target){
+    alert('No se encontró tu asignación. Contacta a quien organiza el sorteo.');
+    return;
+  }
 
   const hasGifts = target.gifts && target.gifts.length === 3 && target.gifts.some(g => g.trim());
-  resultBox.innerHTML = `
-    <div class="result-card">
-      <p class="who">Le regalas a: ${esc(target.name)}</p>
-      <div class="hint">Ideas de regalo que dejó:</div>
-      ${hasGifts
-        ? `<ul>${target.gifts.map(g=>`<li>${esc(g)}</li>`).join('')}</ul>`
-        : `<p class="none">Todavía no ha dejado sus ideas de regalo.</p>`}
-    </div>
-  `;
+  document.getElementById('resultModalName').textContent = target.name;
+  document.getElementById('resultModalGifts').innerHTML = hasGifts
+    ? target.gifts.map(g => `<li>${esc(g)}</li>`).join('')
+    : `<li style="list-style:none; color:var(--ink-soft); font-style:italic; padding-left:-1.1rem; margin-left:-1.1rem;">Todavía no ha dejado sus ideas de regalo.</li>`;
+
+  const overlay = document.getElementById('resultModal');
+  overlay.classList.remove('hidden');
+  document.getElementById('resultModalClose').onclick = () => overlay.classList.add('hidden');
 }
 
 // ---------- step 3: estado del sorteo ----------
@@ -665,9 +673,7 @@ function renderEstado(msg){
   const cfg = state.config;
   const n = state.participants.length;
   const canSetDate = !cfg.drawn;
-  const now = new Date();
   const drawDate = cfg.drawDate ? new Date(cfg.drawDate) : null;
-  const dateReached = drawDate ? now >= drawDate : true;
   const enoughPeople = n >= 3;
 
   document.getElementById('content').innerHTML = `
@@ -682,15 +688,11 @@ function renderEstado(msg){
       <div class="field">
         <label for="drawDateInput">Fecha y hora del sorteo</label>
         <input type="datetime-local" id="drawDateInput" ${canSetDate ? '' : 'disabled'} value="${cfg.drawDate ? toLocalInputValue(cfg.drawDate) : ''}">
-        <div class="hint">A partir de esta fecha, cualquier participante puede activar el sorteo desde aquí.</div>
+        <div class="hint">Al llegar esta fecha, el sorteo se activa automáticamente. Quien organiza también puede activarlo antes desde el paso 04.</div>
       </div>
       <button class="ghost" id="saveDateBtn" type="button">Guardar fecha</button>
 
-      ${drawDate ? renderCountdownHTML(drawDate) : ''}
-
-      <button class="primary" id="drawBtn" type="button" ${(!enoughPeople || !dateReached) ? 'disabled' : ''} style="margin-top:1.25rem;">
-        ${!enoughPeople ? 'Faltan participantes' : (!dateReached ? 'Aún no llega la fecha' : 'Realizar el sorteo ahora')}
-      </button>
+      ${drawDate ? renderCountdownHTML(drawDate) : `<p class="hint" style="margin-top:1rem;">Aún no se ha definido una fecha para el sorteo.</p>`}
     `}
 
     <hr class="tear">
@@ -699,7 +701,6 @@ function renderEstado(msg){
 
   if(!cfg.drawn){
     document.getElementById('saveDateBtn').addEventListener('click', onSaveDate);
-    document.getElementById('drawBtn').addEventListener('click', onRealizarSorteo);
     if(drawDate) startCountdown(drawDate);
   }
 }
@@ -724,9 +725,8 @@ function startCountdown(drawDate){
     const diff = drawDate - new Date();
     if(diff <= 0){
       clearInterval(countdownTimer);
-      const btn = document.getElementById('drawBtn');
-      if(btn){ btn.disabled = false; btn.textContent = 'Realizar el sorteo ahora'; }
       ['cdD','cdH','cdM','cdS'].forEach(id=>{ const el = document.getElementById(id); if(el) el.textContent = '00'; });
+      maybeAutoDraw();
       return;
     }
     const d = Math.floor(diff / 86400000);
@@ -750,14 +750,11 @@ async function onSaveDate(){
   renderEstado(ok ? {type:'ok', text:'Fecha del sorteo guardada.'} : {type:'error', text:'No se pudo guardar la fecha.'});
 }
 
-async function onRealizarSorteo(){
+async function performDraw(){
   await loadAll();
-  if(state.config.drawn){ renderEstado({type:'ok', text:'El sorteo ya se había realizado.'}); return; }
-  if(state.participants.length < 3){ renderEstado({type:'error', text:'Se necesitan al menos 3 personas inscritas.'}); return; }
-  if(state.config.drawDate && new Date() < new Date(state.config.drawDate)){
-    renderEstado({type:'error', text:'Todavía no llega la fecha del sorteo.'});
-    return;
-  }
+  if(state.config.drawn) return {ok:true, already:true};
+  if(state.participants.length < 3) return {ok:false, reason:'faltan'};
+
   const shuffled = sattoloShuffle(state.participants);
   const assignments = {};
   state.participants.forEach((p, i) => { assignments[p.id] = shuffled[i].id; });
@@ -769,12 +766,21 @@ async function onRealizarSorteo(){
   const ok1 = await setKey('assignments', state.assignments);
   const ok2 = await setKey('config', state.config);
   renderStub();
-  if(ok1 && ok2){
-    currentStep = 2;
-    renderSteps();
-    renderMio({type:'ok', text:'¡Sorteo realizado! Elige tu nombre para ver tu resultado.'});
-  }else{
-    renderEstado({type:'error', text:'Hubo un problema al guardar el sorteo. Intenta de nuevo.'});
+  return {ok: ok1 && ok2};
+}
+
+// Se activa sola cuando cualquiera tiene la página abierta y ya se cumplió la fecha programada.
+async function maybeAutoDraw(){
+  if(state.config.drawn) return;
+  if(!state.config.drawDate) return;
+  if(new Date() < new Date(state.config.drawDate)) return;
+  const result = await performDraw();
+  if(result.ok && !result.already){
+    if(currentStep === 3){
+      currentStep = 2;
+      renderSteps();
+      renderMio({type:'ok', text:'¡La fecha llegó y el sorteo se realizó automáticamente! Elige tu nombre para ver tu resultado.'});
+    }
   }
 }
 
@@ -816,7 +822,11 @@ function renderOrganizador(msg){
       </table>
       <button class="ghost" id="downloadBtn" type="button">Descargar lista (.txt)</button>
     ` : `
-      <div class="msg error">El sorteo todavía no se ha realizado. Cuando se haga, aquí verás la lista completa.</div>
+      <div class="msg error">El sorteo todavía no se ha realizado.</div>
+      <button class="primary" id="orgDrawBtn" type="button" ${state.participants.length < 3 ? 'disabled' : ''}>
+        ${state.participants.length < 3 ? 'Faltan participantes (mínimo 3)' : 'Realizar el sorteo ahora'}
+      </button>
+      <div class="hint" style="margin-bottom:1.25rem;">Esto activa el sorteo de inmediato, sin esperar la fecha programada.</div>
       ${renderGuestListHTML()}
     `}
     <hr class="tear">
@@ -825,8 +835,20 @@ function renderOrganizador(msg){
 
   if(cfg.drawn){
     document.getElementById('downloadBtn').addEventListener('click', onDownloadList);
+  }else{
+    const drawBtn = document.getElementById('orgDrawBtn');
+    if(drawBtn) drawBtn.addEventListener('click', onOrgDraw);
   }
   document.getElementById('resetBtn').addEventListener('click', onReset);
+}
+
+async function onOrgDraw(){
+  const result = await performDraw();
+  if(result.ok){
+    renderOrganizador({type:'ok', text:'¡Sorteo realizado!'});
+  }else{
+    renderOrganizador({type:'error', text: result.reason === 'faltan' ? 'Se necesitan al menos 3 personas inscritas.' : 'Hubo un problema al guardar el sorteo. Intenta de nuevo.'});
+  }
 }
 
 function onOrgUnlock(){
@@ -883,6 +905,7 @@ function render(){
   }
   document.getElementById('content').innerHTML = `<p class="empty">Cargando sorteo…</p>`;
   await loadAll();
+  await maybeAutoDraw();
   render();
 })();
 </script>
