@@ -216,6 +216,12 @@
     margin-left:auto; font-family: var(--font-mono); font-size: .68rem;
     color: var(--ink-soft); text-transform: uppercase;
   }
+  .guest-list .del-btn{
+    background:none; border: 1px solid var(--line); color: var(--seal);
+    border-radius: 4px; font-size: .68rem; font-family: var(--font-mono);
+    padding: .2rem .5rem; cursor:pointer; margin-left: .6rem;
+  }
+  .guest-list .del-btn:hover{ background: var(--seal-tint); border-color: var(--seal); }
   .empty{ text-align:center; color: var(--ink-soft); font-size: .9rem; padding: 1.5rem 0; }
 
   .count-badge{
@@ -335,9 +341,9 @@
 <div class="wrap">
 
   <div class="masthead">
-    <span class="eyebrow">Sorteo privado</span>
+    <span class="eyebrow">Sorteo privado · registro centralizado</span>
     <h1>Amigo Secreto</h1>
-    <p>¡Bienvenido al Amigo Secreto! Para participar, asegúrate de verificar tu nombre en la lista, guardar tus opciones de regalo y consultar la fecha del sorteo. (O a quien debes darle un obsequio)</p>
+    <p>Una persona anota a todo el grupo. Cada quien entra, elige su nombre, deja sus ideas de regalo y —cuando el sorteo esté hecho— ve ahí mismo a quién le regala.</p>
   </div>
 
   <nav class="steps" id="steps"></nav>
@@ -474,7 +480,7 @@ function downloadText(filename, text){
 // ---------- render: nav ----------
 function renderSteps(){
   const labels = [
-    {n:1, label:'Lista de participantes'},
+    {n:1, label:'Agregar'},
     {n:2, label:'Mi regalo y resultado'},
     {n:3, label:'Estado del sorteo'},
     {n:4, label:'Organizador'}
@@ -523,7 +529,7 @@ function renderAgregar(msg){
   }
 }
 
-function renderGuestListHTML(){
+function renderGuestListHTML(editable){
   if(state.participants.length === 0){
     return `<p class="empty">Aún no hay nadie inscrito.</p>`;
   }
@@ -532,8 +538,30 @@ function renderGuestListHTML(){
       <span class="num">${String(i+1).padStart(2,'0')}</span>
       ${esc(p.name)}
       <span class="tag">${p.gifts && p.gifts.length === 3 ? 'con ideas' : 'sin ideas aún'}</span>
+      ${editable ? `<button class="del-btn" type="button" data-del-id="${p.id}" data-del-name="${esc(p.name)}">Eliminar</button>` : ''}
     </li>
   `).join('')}</ul>`;
+}
+
+function wireDeleteButtons(afterRerender){
+  document.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', () => onDeleteParticipant(btn.dataset.delId, btn.dataset.delName, afterRerender));
+  });
+}
+
+async function onDeleteParticipant(id, name, afterRerender){
+  if(!confirm(`¿Eliminar a "${name}" de la lista? Esta acción no se puede deshacer.`)) return;
+  await loadAll();
+  if(state.config.drawn){
+    afterRerender({type:'error', text:'No se puede eliminar a nadie: el sorteo ya se realizó.'});
+    return;
+  }
+  state.participants = state.participants.filter(p => p.id !== id);
+  const ok = await setKey('participants', state.participants);
+  renderStub();
+  afterRerender(ok
+    ? {type:'ok', text:`${name} fue eliminado/a de la lista.`}
+    : {type:'error', text:'No se pudo eliminar. Intenta de nuevo.'});
 }
 
 async function onAddParticipant(e){
@@ -827,7 +855,7 @@ function renderOrganizador(msg){
         ${state.participants.length < 3 ? 'Faltan participantes (mínimo 3)' : 'Realizar el sorteo ahora'}
       </button>
       <div class="hint" style="margin-bottom:1.25rem;">Esto activa el sorteo de inmediato, sin esperar la fecha programada.</div>
-      ${renderGuestListHTML()}
+      ${renderGuestListHTML(true)}
     `}
     <hr class="tear">
     <button class="link-danger" id="resetBtn" type="button">Reiniciar sorteo (borra todo)</button>
@@ -838,6 +866,7 @@ function renderOrganizador(msg){
   }else{
     const drawBtn = document.getElementById('orgDrawBtn');
     if(drawBtn) drawBtn.addEventListener('click', onOrgDraw);
+    wireDeleteButtons(renderOrganizador);
   }
   document.getElementById('resetBtn').addEventListener('click', onReset);
 }
