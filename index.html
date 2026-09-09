@@ -286,6 +286,41 @@
 
   .footer-note{ text-align:center; font-size: .78rem; color: var(--ink-soft); margin-top: 2rem; line-height: 1.6; }
 
+  /* ---------- modal de confirmación ---------- */
+  .modal-overlay{
+    position: fixed; inset: 0;
+    background: rgba(43,36,32,.45);
+    display:flex; align-items:center; justify-content:center;
+    padding: 1.25rem;
+    z-index: 50;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal-box{
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    max-width: 340px;
+    width: 100%;
+    padding: 1.5rem 1.4rem;
+    text-align:center;
+  }
+  .modal-box .modal-title{
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin: 0 0 .5rem;
+  }
+  .modal-box .modal-sub{
+    font-size: .85rem;
+    color: var(--ink-soft);
+    margin: 0 0 1.25rem;
+    line-height: 1.5;
+  }
+  .modal-actions{ display:flex; gap: .6rem; }
+  .modal-actions button{ flex:1; margin-top:0; }
+  select:disabled{ background: var(--paper-deep); color: var(--ink-soft); cursor:not-allowed; }
+
   @media (prefers-reduced-motion: reduce){ .envelope .flap, .envelope .seal, .envelope .letter{ transition: none; } }
   @media (max-width: 420px){ .steps{ flex-wrap: wrap; } .ticket-body{ padding: 1.5rem 1.1rem 1.75rem; } }
 </style>
@@ -308,6 +343,17 @@
   <div id="setupNotice"></div>
 
   <p class="footer-note">Los datos de este sorteo se guardan de forma compartida para el grupo.<br>Cualquier persona con este enlace puede elegir un nombre de la lista; sé honesto/a y elige solo el tuyo. Solo quien organiza conoce el PIN para ver la lista completa.</p>
+</div>
+
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal-box">
+    <p class="modal-title" id="confirmModalTitle">¿Eres tú?</p>
+    <p class="modal-sub" id="confirmModalSub">Una vez confirmes, no podrás cambiar de nombre en esta sesión.</p>
+    <div class="modal-actions">
+      <button class="ghost" id="confirmModalNo" type="button">No, cancelar</button>
+      <button class="primary" id="confirmModalYes" type="button" style="margin-top:0;">Sí, soy yo</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -386,6 +432,18 @@ function sattoloShuffle(arr){
   }
   return a;
 }
+function showConfirmModal(name, onYes, onNo){
+  const overlay = document.getElementById('confirmModal');
+  document.getElementById('confirmModalTitle').textContent = `¿Estás seguro que eres ${name}?`;
+  overlay.classList.remove('hidden');
+
+  const yesBtn = document.getElementById('confirmModalYes');
+  const noBtn = document.getElementById('confirmModalNo');
+
+  yesBtn.onclick = () => { overlay.classList.add('hidden'); onYes(); };
+  noBtn.onclick = () => { overlay.classList.add('hidden'); if(onNo) onNo(); };
+}
+
 function downloadText(filename, text){
   const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
   const url = URL.createObjectURL(blob);
@@ -479,27 +537,51 @@ async function onAddParticipant(e){
 }
 
 // ---------- step 2: mi regalo y mi resultado ----------
+// Una vez la persona confirma quién es, queda bloqueada mientras no recargue la página.
+let lockedMioId = null;
+
 function renderMio(msg){
   document.getElementById('content').innerHTML = `
     <h2 class="section-title">Mi regalo y mi resultado</h2>
-    <p class="section-sub">Elige tu nombre de la lista. Deja tus ideas de regalo para quien te toque a ti — y si el sorteo ya se hizo, verás aquí mismo a quién le regalas.</p>
+    <p class="section-sub">Elige tu nombre de la lista y confirma que eres tú. Deja tus ideas de regalo para quien te toque a ti — y si el sorteo ya se hizo, verás aquí mismo a quién le regalas.</p>
     ${msg ? `<div class="msg ${msg.type}">${esc(msg.text)}</div>` : ''}
     <div class="field">
       <label for="mioWho">Soy...</label>
-      <select id="mioWho">
+      <select id="mioWho" ${lockedMioId ? 'disabled' : ''}>
         <option value="">Selecciona tu nombre</option>
-        ${state.participants.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+        ${state.participants.map(p=>`<option value="${p.id}" ${lockedMioId===p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
       </select>
+      ${lockedMioId ? `<div class="hint">Ya confirmaste tu nombre para esta sesión. Si te equivocaste, recarga la página para volver a elegir.</div>` : ''}
     </div>
     <div id="mioArea"></div>
   `;
-  document.getElementById('mioWho').addEventListener('change', onPickMio);
+  if(lockedMioId){
+    loadMioArea(lockedMioId);
+  }else{
+    document.getElementById('mioWho').addEventListener('change', onSelectMioName);
+  }
 }
 
-function onPickMio(){
-  const whoId = document.getElementById('mioWho').value;
+function onSelectMioName(){
+  const select = document.getElementById('mioWho');
+  const whoId = select.value;
+  if(!whoId){ document.getElementById('mioArea').innerHTML = ''; return; }
+  const person = state.participants.find(p => p.id === whoId);
+  if(!person){ return; }
+
+  showConfirmModal(person.name,
+    () => {
+      lockedMioId = whoId;
+      select.disabled = true;
+      select.insertAdjacentHTML('afterend', `<div class="hint">Ya confirmaste tu nombre para esta sesión. Si te equivocaste, recarga la página para volver a elegir.</div>`);
+      loadMioArea(whoId);
+    },
+    () => { select.value = ''; document.getElementById('mioArea').innerHTML = ''; }
+  );
+}
+
+function loadMioArea(whoId){
   const area = document.getElementById('mioArea');
-  if(!whoId){ area.innerHTML = ''; return; }
   const me = state.participants.find(p => p.id === whoId);
   if(!me){ area.innerHTML = `<div class="msg error">No se encontró ese nombre.</div>`; return; }
 
@@ -551,8 +633,6 @@ async function onSaveGifts(whoId){
   const ok = await setKey('participants', state.participants);
   renderStub();
   renderMio(ok ? {type:'ok', text:'¡Listo! Tus ideas de regalo quedaron guardadas.'} : {type:'error', text:'No se pudo guardar. Intenta de nuevo.'});
-  document.getElementById('mioWho').value = whoId;
-  onPickMio();
 }
 
 function onReveal(whoId){
